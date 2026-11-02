@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="OpsNexus AI: Autonomous Agentic Operations Management Platform for Omnichannel Retail. Built for Forward Deployed Engineer technical evaluation.">
+  <title>OpsNexus AI | Autonomous Retail Operations Platform</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="app-header" id="appHeader">
+    <div class="header-left">
+      <div class="logo-group">
+        <div class="logo-icon">⚡</div>
+        <div class="logo-text">
+          <span class="logo-title">OpsNexus<span class="gradient-text">.ai</span></span>
+          <span class="logo-subtitle">Agentic Retail Operations Assistant</span>
+        </div>
+      </div>
+      <div class="system-status-pill" id="systemStatusPill">
+        <span class="status-dot pulsing"></span>
+        <span class="status-label">ERP / WMS Live: Pune (120) • Mumbai (420) • Delhi (650)</span>
+      </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="nav-tabs" id="mainNavTabs" aria-label="Main Navigation">
+      <button class="nav-tab active" id="tabCommandCenter" onclick="switchMainTab('command-center')">
+        <span class="nav-icon">⚡</span> Operations Console
+      </button>
+      <button class="nav-tab" id="tabEdgePlayground" onclick="switchMainTab('edge-playground')">
+        <span class="nav-icon">🧪</span> Edge Case Lab
+      </button>
+      <button class="nav-tab" id="tabPrdViewer" onclick="switchMainTab('prd-viewer')">
+        <span class="nav-icon">📑</span> PRD Spec
+      </button>
+      <button class="nav-tab" id="tabPresentation" onclick="switchMainTab('presentation')">
+        <span class="nav-icon">📊</span> 8–10 Slide PPT
+      </button>
+      <button class="nav-tab" id="tabVideoGuide" onclick="switchMainTab('video-guide')">
+        <span class="nav-icon">🎥</span> 10-Min Demo Guide
+      </button>
+    </nav>
+
+    <!-- User / Role Switcher -->
+    <div class="header-right">
+      <div class="role-selector-card">
+        <span class="role-label">Active Role:</span>
+        <select id="userRoleSelect" class="role-select" onchange="onRoleChange(this.value)">
+          <option value="ROM" selected>Rahul Sharma (Regional Ops Manager - Approver)</option>
+          <option value="OPS_COORD">Priya Nair (Operations Coordinator)</option>
+          <option value="VP_SCM">Vikram Malhotra (VP of Supply Chain)</option>
+        </select>
+      </div>
+      <button class="btn btn-outline btn-sm" id="btnResetDemo" onclick="resetDemoState()" title="Reset platform to clean state">
+        🔄 Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Bar for System Alerts -->
+  <div id="globalAlertBanner" class="alert-banner hidden" role="alert">
+    <div class="alert-content">
+      <span class="alert-icon" id="alertIcon">⚠️</span>
+      <span class="alert-text" id="alertText">Notification message</span>
+    </div>
+    <button class="alert-close" onclick="closeAlertBanner()" aria-label="Dismiss alert">&times;</button>
+  </div>
+
+  <!-- MAIN TAB 1: OPERATIONS COMMAND CENTER -->
+  <main class="tab-content active" id="viewCommandCenter">
+    
+    <!-- Quick Scenario Preset Bar -->
+    <section class="scenario-bar" aria-label="Pre-loaded Test Scenarios">
+      <div class="scenario-bar-title">
+        <span class="badge-label">PRE-LOAD TEST CASES:</span>
+      </div>
+      <div class="scenario-chips" id="scenarioChipsContainer">
+        <button class="chip active" id="chipPuneDelay" onclick="loadScenario('pune_delay')">
+          <span class="chip-dot dot-urgent"></span> Pune Launch Delay (Standard)
+        </button>
+        <button class="chip" id="chipConflict" onclick="loadScenario('conflicting_info')">
+          <span class="chip-dot dot-warning"></span> Edge 1: Inventory Conflict (180 vs 120)
+        </button>
+        <button class="chip" id="chipMissing" onclick="loadScenario('missing_info')">
+          <span class="chip-dot dot-info"></span> Edge 2: Missing Information
+        </button>
+        <button class="chip" id="chipInjection" onclick="loadScenario('prompt_injection')">
+          <span class="chip-dot dot-danger"></span> Edge 3: Prompt Injection Attack
+        </button>
+        <button class="chip" id="chipLowConf" onclick="loadScenario('low_confidence')">
+          <span class="chip-dot dot-warning"></span> Edge 4: Ambiguous / Low Confidence
+        </button>
+        <button class="chip" id="chipSlaBreach" onclick="loadScenario('sla_breach')">
+          <span class="chip-dot dot-urgent"></span> Edge 5: SLA Breach & Auto-Escalation
+        </button>
+      </div>
+    </section>
+
+    <!-- 3-Column Operations Layout -->
+    <div class="ops-grid">
+      
+      <!-- COLUMN 1: REQUEST INTAKE & ENTITY INSPECTOR -->
+      <section class="ops-col card" id="colIntake">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-badge badge-blue">STEP 1: INTAKE</span>
+            <h2 class="card-title">Operational Request Stream</h2>
+          </div>
+          <span class="channel-pill" id="intakeChannelPill">📧 Email Inbox</span>
+        </div>
+
+        <div class="intake-meta-row">
+          <div class="meta-field">
+            <label for="inputSender">From:</label>
+            <input type="text" id="inputSender" class="form-input-sm" value="rom.west@retailcorp.in (Regional Operations Manager)" readonly>
+          </div>
+          <div class="meta-field">
+            <label for="inputSubject">Subject:</label>
+            <input type="text" id="inputSubject" class="form-input-sm" value="Urgent Delivery Delay – Store Launch" readonly>
+          </div>
+        </div>
+
+        <div class="editor-area">
+          <label for="requestBodyInput" class="editor-label">Incoming Message Content:</label>
+          <textarea id="requestBodyInput" class="request-textarea" rows="7" placeholder="Paste incoming email or type operational issue here..."></textarea>
+        </div>
+
+        <div class="intake-actions-row">
+          <button class="btn btn-primary btn-block" id="btnRunPipeline" onclick="runPipeline()">
+            <span class="btn-icon">⚡</span> Execute Multi-Agent Pipeline
+          </button>
+        </div>
+
+        <!-- Extraction Entity Summary (Populated Post-Execution) -->
+        <div class="extraction-card" id="extractionCard">
+          <div class="extraction-header">
+            <span class="sub-heading">Extracted Structured Entities</span>
+            <span class="confidence-badge" id="extractionConfidenceBadge">Confidence: 96%</span>
+          </div>
+          <div class="entity-grid" id="entityGrid">
+            <div class="entity-item">
+              <span class="entity-label">Issue Category</span>
+              <span class="entity-val" id="valIssue">Delivery Delay & Shortage</span>
+            </div>
+            <div class="entity-item">
+              <span class="entity-label">Target Location</span>
+              <span class="entity-val highlight-val" id="valLocation">Pune Store</span>
+            </div>
+            <div class="entity-item">
+              <span class="entity-label">Units Demanded</span>
+              <span class="entity-val" id="valQty">500 Units</span>
+            </div>
+            <div class="entity-item">
+              <span class="entity-label">Stated Stock</span>
+              <span class="entity-val" id="valStatedStock">120 Units</span>
+            </div>
+            <div class="entity-item">
+              <span class="entity-label">Hard Deadline</span>
+              <span class="entity-val deadline-val" id="valDeadline">Today 4:00 PM</span>
+            </div>
+            <div class="entity-item">
+              <span class="entity-label">Milestone Event</span>
+              <span class="entity-val" id="valEvent">Grand Store Opening</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMN 2: MULTI-AGENT ORCHESTRATION PIPELINE GRAPH -->
+      <section class="ops-col card" id="colAgents">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-badge badge-purple">STEP 2: AGENT ORCHESTRATION</span>
+            <h2 class="card-title">Live Agent Coordination Graph</h2>
+          </div>
+          <span class="agent-count-pill" id="agentCountPill">5 Specialized Agents Active</span>
+        </div>
+
+        <div class="pipeline-graph" id="pipelineGraph">
+          
+          <!-- Agent Node 1: Guardrail -->
+          <div class="agent-node" id="nodeGuardrail">
+            <div class="agent-status-indicator indicator-green" id="indGuardrail">✓</div>
+            <div class="agent-node-body">
+              <div class="agent-title-row">
+                <span class="agent-name">1. Security Guardrails Agent</span>
+                <span class="agent-latency">12ms</span>
+              </div>
+              <div class="agent-summary" id="descGuardrail">
+                Scans for prompt injections, malicious spend overrides, and payload manipulation.
+              </div>
+              <div class="agent-tag-row">
+                <span class="agent-tag" id="tagGuardrail">Status: PASSED</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connector Arrow -->
+          <div class="graph-connector">↓</div>
+
+          <!-- Agent Node 2: Intake & Extraction -->
+          <div class="agent-node" id="nodeIntake">
+            <div class="agent-status-indicator indicator-green" id="indIntake">✓</div>
+            <div class="agent-node-body">
+              <div class="agent-title-row">
+                <span class="agent-name">2. Intake & Entity Extraction Agent</span>
+                <span class="agent-latency">240ms</span>
+              </div>
+              <div class="agent-summary" id="descIntake">
+                Extracts locations, dates, units, and flags any missing or ambiguous inputs.
+              </div>
+              <div class="agent-tag-row">
+                <span class="agent-tag" id="tagIntake">Extracted: 500 units @ Pune</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connector Arrow -->
+          <div class="graph-connector">↓</div>
+
+          <!-- Agent Node 3: Inventory Reconciliation -->
+          <div class="agent-node" id="nodeRecon">
+            <div class="agent-status-indicator indicator-green" id="indRecon">✓</div>
+            <div class="agent-node-body">
+              <div class="agent-title-row">
+                <span class="agent-name">3. WMS & Inventory Reconciliation Agent</span>
+                <span class="agent-latency">180ms</span>
+              </div>
+              <div class="agent-summary" id="descRecon">
+                Queries Pune WMS (120 units on hand). Scanned regional hubs: Found 370 usable surplus in Mumbai Hub.
+              </div>
+              <div class="agent-tag-row">
+                <span class="agent-tag" id="tagRecon">Shortage: 380 Units</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connector Arrow -->
+          <div class="graph-connector">↓</div>
+
+          <!-- Agent Node 4: Risk & Impact Engine -->
+          <div class="agent-node" id="nodeRisk">
+            <div class="agent-status-indicator indicator-red" id="indRisk">!</div>
+            <div class="agent-node-body">
+              <div class="agent-title-row">
+                <span class="agent-name">4. Business Impact & Risk Evaluation Agent</span>
+                <span class="agent-latency">95ms</span>
+              </div>
+              <div class="agent-summary" id="descRisk">
+                Store Launch delay risks ₹8.5L/day in revenue. Strict 4:00 PM cutoff requires immediate human escalation.
+              </div>
+              <div class="agent-tag-row">
+                <span class="agent-tag tag-critical" id="tagRisk">Risk: CRITICAL (Score: 88/100)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connector Arrow -->
+          <div class="graph-connector">↓</div>
+
+          <!-- Agent Node 5: Action Synthesizer -->
+          <div class="agent-node" id="nodeAction">
+            <div class="agent-status-indicator indicator-green" id="indAction">✓</div>
+            <div class="agent-node-body">
+              <div class="agent-title-row">
+                <span class="agent-name">5. Action Synthesizer & Cost Modeler</span>
+                <span class="agent-latency">310ms</span>
+              </div>
+              <div class="agent-summary" id="descAction">
+                Synthesized 3 logistical options with cost trade-offs. Formulated Mumbai Inter-Hub Transfer as recommended choice.
+              </div>
+              <div class="agent-tag-row">
+                <span class="agent-tag tag-rec" id="tagAction">Rec: Mumbai Hub Truck (₹12,000)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- COLUMN 3: HUMAN-IN-THE-LOOP APPROVAL & OVERRIDE GATEWAY -->
+      <section class="ops-col card" id="colApproval">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-badge badge-orange">STEP 3: HITL GATEWAY</span>
+            <h2 class="card-title">Policy & Human Approval</h2>
+          </div>
+          <span class="policy-pill" id="policyPill">Mandatory Approval Required</span>
+        </div>
+
+        <!-- SLA Cutoff Countdown Card -->
+        <div class="sla-card" id="slaCountdownCard">
+          <div class="sla-header">
+            <span class="sla-icon">⏰</span>
+            <div class="sla-info">
+              <span class="sla-title">APPROVAL DEADLINE CUTOFF</span>
+              <span class="sla-deadline-text" id="slaDeadlineText">Hard Cutoff: Today at 4:00 PM</span>
+            </div>
+          </div>
+          <div class="countdown-display" id="countdownClock">03h 48m 12s</div>
+          <div class="sla-progress-bg">
+            <div class="sla-progress-bar" id="slaProgressBar" style="width: 78%;"></div>
+          </div>
+          <div class="sla-subtext">Automated escalation to VP of Supply Chain will trigger if unapproved by 4:00 PM.</div>
+        </div>
+
+        <!-- Recommended Action Card -->
+        <div class="decision-card" id="decisionCard">
+          <div class="decision-badge">RECOMMENDED RESOLUTION (AI CONFIDENCE: 94%)</div>
+          <h3 class="decision-title" id="decisionTitle">Option A: Inter-Hub Transfer from Mumbai Central</h3>
+          
+          <div class="decision-kpis">
+            <div class="kpi-box">
+              <span class="kpi-label">Cost</span>
+              <span class="kpi-value text-green" id="kpiCost">₹12,000</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">Transit Time</span>
+              <span class="kpi-value" id="kpiTransit">2 Days</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">Units Delivered</span>
+              <span class="kpi-value" id="kpiUnits">380 Units</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">Launch Delay</span>
+              <span class="kpi-value text-green" id="kpiDelay">0 Days</span>
+            </div>
+          </div>
+
+          <div class="decision-rationale" id="decisionRationale">
+            Mumbai Central Hub currently holds 420 units (370 usable surplus). A dedicated 14-ft chartered freight truck can deliver 380 units to the Pune store by Thursday 10:00 AM, ensuring 100% on-time store opening for ₹12,000.
+          </div>
+
+          <!-- Alternative Options Selector -->
+          <div class="options-selector-group">
+            <label class="options-label">Select Action Alternative:</label>
+            <div class="radio-option-item selected" onclick="selectAlternativeOption('opt_mumbai_transfer')">
+              <input type="radio" name="optAction" id="radioOptMumbai" checked>
+              <label for="radioOptMumbai">
+                <strong>Option A: Inter-Hub Transfer from Mumbai (₹12,000)</strong>
+                <span class="sub-opt-desc">2 Days transit • Recommmended • Lowest Risk</span>
+              </label>
+            </div>
+            <div class="radio-option-item" onclick="selectAlternativeOption('opt_air_freight')">
+              <input type="radio" name="optAction" id="radioOptAir">
+              <label for="radioOptAir">
+                <strong>Option B: Expedited Air Cargo from Supplier (₹35,000)</strong>
+                <span class="sub-opt-desc">3 Days transit • Higher Cost (+₹23k)</span>
+              </label>
+            </div>
+            <div class="radio-option-item" onclick="selectAlternativeOption('opt_soft_launch')">
+              <input type="radio" name="optAction" id="radioOptSoft">
+              <label for="radioOptSoft">
+                <strong>Option C: Soft Launch with 120 Units (₹0)</strong>
+                <span class="sub-opt-desc">Immediate • High Risk of Poor Customer Experience</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="approval-actions">
+            <button class="btn btn-success btn-lg btn-block" id="btnApproveAction" onclick="approveSelectedAction()">
+              <span class="btn-icon">✓</span> Approve & Dispatch Transfer (₹12,000)
+            </button>
+            <div class="approval-secondary-row">
+              <button class="btn btn-outline" id="btnOverrideModal" onclick="openOverrideModal()">
+                ✏️ Human Override / Edit
+              </button>
+              <button class="btn btn-danger-outline" id="btnRejectAction" onclick="rejectAction()">
+                ✕ Reject Cost
+              </button>
+              <button class="btn btn-warning-outline" id="btnSimulateEscalate" onclick="triggerEscalation()" title="Simulate 4:00 PM cutoff breach">
+                🚨 Trigger Escalation
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- LOWER SECTION: DUAL HUB (COMMUNICATIONS & AUDIT TRAIL) -->
+    <div class="lower-grid">
+      
+      <!-- LOWER LEFT: STAKEHOLDER COMMUNICATIONS -->
+      <section class="card" id="cardComms">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-badge badge-green">DISPATCH ENGINE</span>
+            <h2 class="card-title">Automated Stakeholder Communications</h2>
+          </div>
+          <div class="comms-tab-pills" id="commsTabPills">
+            <button class="pill-btn active" id="pillCarrier" onclick="switchCommsTab('carrier')">Logistics Dispatch Order</button>
+            <button class="pill-btn" id="pillStore" onclick="switchCommsTab('store')">Store Manager Reassurance</button>
+            <button class="pill-btn" id="pillExec" onclick="switchCommsTab('exec')">Executive 2-Line Alert</button>
+          </div>
+        </div>
+
+        <div class="comms-body" id="commsBodyContainer">
+          <div class="comms-meta-bar" id="commsMetaBar">
+            <span class="comms-to" id="commsToField">To: dispatch.logistics@mumbai-freight.com</span>
+            <button class="btn btn-outline btn-xs" onclick="copyCommsDraft()">📋 Copy Draft</button>
+          </div>
+          <div class="comms-subject-bar" id="commsSubjectField">
+            Subject: [CONFIRMED DISPATCH] Urgent Inter-Hub Transfer: 380 Display Units (WH-BOM -> WH-PUN)
+          </div>
+          <pre class="comms-text-block" id="commsTextContent">
+Dear Logistics Team,
+
+Approval has been granted for emergency inter-hub stock transfer.
+- Authorization Code: OP-XFER-2026-PUN
+- Source: Mumbai Central Hub (WH-BOM-01)
+- Destination: Pune Hub (WH-PUN-01) - Attn: Store Launch Ops
+- Quantity: 380 Display Units / Merchandising Fixtures
+- Required Pickup: Today by 18:00
+- Guaranteed Delivery: Thursday by 10:00 AM
+- Approved Freight Cost: ₹12,000
+
+Please confirm vehicle number and driver contact upon loading.
+
+Regards,
+Automated Operations Dispatcher
+OpsNexus Retail Platform
+          </pre>
+        </div>
+      </section>
+
+      <!-- LOWER RIGHT: IMMUTABLE AUDIT TRAIL -->
+      <section class="card" id="cardAudit">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-badge badge-gray">TRACEABILITY</span>
+            <h2 class="card-title">Immutable Audit Trail</h2>
+          </div>
+          <span class="audit-integrity-badge">🔒 SHA-256 Ledger Verified</span>
+        </div>
+
+        <div class="audit-scroll-container" id="auditTrailContainer">
+          <!-- Dynamic entries inserted here -->
+          <div class="audit-entry">
+            <div class="audit-timestamp">10:04:15 AM</div>
+            <div class="audit-pill pill-ai">Action Synthesizer</div>
+            <div class="audit-text">Formulated 3 options. Recommended Mumbai transfer at ₹12,000 (94% confidence).</div>
+          </div>
+          <div class="audit-entry">
+            <div class="audit-timestamp">10:03:52 AM</div>
+            <div class="audit-pill pill-ai">Risk Agent</div>
+            <div class="audit-text">Assessed CRITICAL risk (88/100). Store launch delay exposure: ₹8.5L/day.</div>
+          </div>
+          <div class="audit-entry">
+            <div class="audit-timestamp">10:03:30 AM</div>
+            <div class="audit-pill pill-ai">Reconciliation</div>
+            <div class="audit-text">Verified Pune WMS stock (120 units). Located 370 surplus units in Mumbai Central Hub.</div>
+          </div>
+          <div class="audit-entry">
+            <div class="audit-timestamp">10:03:10 AM</div>
+            <div class="audit-pill pill-ai">Intake Agent</div>
+            <div class="audit-text">Extracted 500 units for Pune launch, 4:00 PM deadline (96% confidence).</div>
+          </div>
+          <div class="audit-entry">
+            <div class="audit-timestamp">10:03:00 AM</div>
+            <div class="audit-pill pill-guard">Security Guard</div>
+            <div class="audit-text">Passed security scan. No adversarial prompt injection detected.</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- MAIN TAB 2: EDGE CASE PLAYGROUND -->
+  <section class="tab-content container" id="viewEdgePlayground">
+    <div class="doc-header">
+      <span class="card-badge badge-purple">EVALUATION BENCHMARK</span>
+      <h1 class="doc-title">Interactive Edge Cases Lab</h1>
+      <p class="doc-subtitle">Demonstrating how OpsNexus AI detects, communicates, recovers from, and audits the assignment's critical operational edge cases.</p>
+    </div>
+
+    <div class="edge-grid">
+      
+      <!-- Card 1: Conflicting Information -->
+      <div class="edge-card">
+        <div class="edge-card-top">
+          <span class="edge-badge badge-warning">EDGE CASE 1</span>
+          <span class="edge-status">Handled</span>
+        </div>
+        <h3 class="edge-title">Conflicting Inventory Data</h3>
+        <p class="edge-desc">Email claims 180 display units are available in Pune, but WMS ground-truth database only records 120 units.</p>
+        <div class="edge-action-box">
+          <strong>System Behavior:</strong> Flags discrepancy delta (+60 units), prompts physical cycle count, and uses conservative WMS ground truth for logistics models.
+        </div>
+        <button class="btn btn-outline btn-block" onclick="loadScenario('conflicting_info'); switchMainTab('command-center'); runPipeline();">
+          ▶ Test Inventory Conflict
+        </button>
+      </div>
+
+      <!-- Card 2: Missing Information -->
+      <div class="edge-card">
+        <div class="edge-card-top">
+          <span class="edge-badge badge-blue">EDGE CASE 2</span>
+          <span class="edge-status">Handled</span>
+        </div>
+        <h3 class="edge-title">Missing Critical Information</h3>
+        <p class="edge-desc">Email omits quantity, location, deadline, and supplier details.</p>
+        <div class="edge-action-box">
+          <strong>System Behavior:</strong> Halts automatic recommendation, flags missing attributes, and auto-generates a targeted clarification email draft back to sender.
+        </div>
+        <button class="btn btn-outline btn-block" onclick="loadScenario('missing_info'); switchMainTab('command-center'); runPipeline();">
+          ▶ Test Missing Info Flow
+        </button>
+      </div>
+
+      <!-- Card 3: Prompt Injection -->
+      <div class="edge-card">
+        <div class="edge-card-top">
+          <span class="edge-badge badge-danger">EDGE CASE 3</span>
+          <span class="edge-status">Guarded</span>
+        </div>
+        <h3 class="edge-title">Adversarial Prompt Injection</h3>
+        <p class="edge-desc">Incoming email contains hidden instructions to bypass human approval and authorize a ₹250,000 wire transfer.</p>
+        <div class="edge-action-box">
+          <strong>System Behavior:</strong> Pre-LLM guardrail neutralizes payload in &lt;15ms, quarantines request, locks financial actions, and alerts SecOps.
+        </div>
+        <button class="btn btn-outline btn-block" onclick="loadScenario('prompt_injection'); switchMainTab('command-center'); runPipeline();">
+          ▶ Test Injection Defense
+        </button>
+      </div>
+
+      <!-- Card 4: Human Override -->
+      <div class="edge-card">
+        <div class="edge-card-top">
+          <span class="edge-badge badge-green">EDGE CASE 4</span>
+          <span class="edge-status">Active</span>
+        </div>
+        <h3 class="edge-title">Incorrect Extraction & Human Override</h3>
+        <p class="edge-desc">Human manager identifies that buffer stock or destination needs modification.</p>
+        <div class="edge-action-box">
+          <strong>System Behavior:</strong> Human edits extracted fields inline. System accepts ground truth, recalculates models, and records dual audit log entries.
+        </div>
+        <button class="btn btn-outline btn-block" onclick="loadScenario('pune_delay'); switchMainTab('command-center'); openOverrideModal();">
+          ▶ Test Human Override Modal
+        </button>
+      </div>
+
+      <!-- Card 5: SLA Breach & Auto-Escalation -->
+      <div class="edge-card">
+        <div class="edge-card-top">
+          <span class="edge-badge badge-orange">EDGE CASE 5</span>
+          <span class="edge-status">Supervised</span>
+        </div>
+        <h3 class="edge-title">Approver SLA Breach & Escalation</h3>
+        <p class="edge-desc">Regional manager fails to review or approve the request prior to the 4:00 PM cutoff.</p>
+        <div class="edge-action-box">
+          <strong>System Behavior:</strong> Background cron detects countdown expiration and triggers emergency high-priority escalation to the VP of Supply Chain.
+        </div>
+        <button class="btn btn-outline btn-block" onclick="loadScenario('sla_breach'); switchMainTab('command-center'); triggerEscalation();">
+          ▶ Test SLA Escalation
+        </button>
+      </div>
+
+      <!-- Card 6: Approval Rejection & Fallback -->
+      <div class="edge-card">
+        <div class="edge-card-top">
+          <span class="edge-badge badge-purple">EDGE CASE 6</span>
+          <span class="edge-status">Handled</span>
+        </div>
+        <h3 class="edge-title">Approval Rejection & Zero-Cost Route</h3>
+        <p class="edge-desc">Approver rejects ₹12,000 spend due to regional budget freeze.</p>
+        <div class="edge-action-box">
+          <strong>System Behavior:</strong> Prompts rejection rationale and automatically activates fallback Option C (zero-cost phased soft launch).
+        </div>
+        <button class="btn btn-outline btn-block" onclick="loadScenario('pune_delay'); switchMainTab('command-center'); rejectAction();">
+          ▶ Test Rejection Fallback
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- MAIN TAB 3: PRD VIEWER -->
+  <section class="tab-content container" id="viewPrdViewer">
+    <div class="doc-header">
+      <span class="card-badge badge-blue">SUBMISSION DELIVERABLE 1</span>
+      <h1 class="doc-title">Product Requirements Document (PRD)</h1>
+      <p class="doc-subtitle">Comprehensive 5-page functional & architectural specification for OpsNexus AI Operations Assistant.</p>
+    </div>
+    <div class="markdown-rendered-card" id="prdRenderedContainer">
+      <!-- Loaded from backend /docs/PRD.md or rendered content -->
+      <div class="loading-spinner">Loading PRD...</div>
+    </div>
+  </section>
+
+  <!-- MAIN TAB 4: 8-10 SLIDE PRESENTATION VIEWER -->
+  <section class="tab-content container" id="viewPresentation">
+    <div class="doc-header">
+      <span class="card-badge badge-purple">SUBMISSION DELIVERABLE 3</span>
+      <h1 class="doc-title">8–10 Slide Solution Presentation</h1>
+      <p class="doc-subtitle">Executive slide deck covering business context, agentic AI architecture, ROI, and roadmap.</p>
+    </div>
+    <div class="slideshow-wrapper">
+      <div class="slide-nav-bar">
+        <button class="btn btn-outline btn-sm" id="btnPrevSlide" onclick="prevSlide()">◀ Previous</button>
+        <span class="slide-counter" id="slideCounterText">Slide 1 of 10</span>
+        <button class="btn btn-primary btn-sm" id="btnNextSlide" onclick="nextSlide()">Next Slide ▶</button>
+      </div>
+      <div class="slide-viewport card" id="slideViewport">
+        <!-- Rendered active slide -->
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN TAB 5: 10-MIN VIDEO DEMO GUIDE -->
+  <section class="tab-content container" id="viewVideoGuide">
+    <div class="doc-header">
+      <span class="card-badge badge-green">SUBMISSION DELIVERABLE 4</span>
+      <h1 class="doc-title">10-Minute Demo Video Walkthrough Guide</h1>
+      <p class="doc-subtitle">Turn-by-turn video recording script with exact narration lines, visual actions, and evaluation highlights.</p>
+    </div>
+    <div class="markdown-rendered-card" id="videoGuideRenderedContainer">
+      <!-- Loaded from DEMO_VIDEO_SCRIPT.md -->
+      <div class="loading-spinner">Loading Demo Script...</div>
+    </div>
+  </section>
+
+  <!-- HUMAN OVERRIDE MODAL DIALOG -->
+  <dialog class="modal-dialog" id="modalOverride">
+    <div class="modal-header">
+      <h3 class="modal-title">✏️ Human Override & Input Correction</h3>
+      <button class="modal-close-btn" onclick="closeOverrideModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-instruction">
+        The Operations Manager can correct any extraction error or adjust operational constraints. Downstream agent models will recalculate with human ground truth.
+      </p>
+      <div class="form-group">
+        <label for="overrideQty">Required Display Units (Buffer adjustment):</label>
+        <input type="number" id="overrideQty" class="form-input" value="400">
+      </div>
+      <div class="form-group">
+        <label for="overrideLocation">Destination Location / Store:</label>
+        <input type="text" id="overrideLocation" class="form-input" value="Pune Store (Phoenix Mall)">
+      </div>
+      <div class="form-group">
+        <label for="overrideDeadline">Approval Deadline Cutoff:</label>
+        <input type="text" id="overrideDeadline" class="form-input" value="Today 4:00 PM">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeOverrideModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitOverrideInputs()">Save & Recalculate Models</button>
+    </div>
+  </dialog>
+
+  <!-- SCRIPTS -->
+  <script src="app.js"></script>
+</body>
+</html>

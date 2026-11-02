@@ -1,0 +1,24 @@
+{
+  "name": "opsnexus-agentic-operations-platform",
+  "version": "1.0.0",
+  "description": "Agentic AI Operations Management Platform for Omnichannel Retail - FDE Assignment",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/agent.test.js"
+  },
+  "keywords": [
+    "agentic-ai",
+    "retail-operations",
+    "forward-deployed-engineer",
+    "human-in-the-loop",
+    "llm-agents"
+  ],
+  "author": "Forward Deployed Engineer Candidate",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

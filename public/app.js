@@ -217,6 +217,9 @@ function switchMainTab(tabId) {
   if (tabId === 'command-center') {
     document.getElementById('tabCommandCenter').classList.add('active');
     document.getElementById('viewCommandCenter').classList.add('active');
+  } else if (tabId === 'langgraph-arch') {
+    document.getElementById('tabLangGraph').classList.add('active');
+    document.getElementById('viewLangGraph').classList.add('active');
   } else if (tabId === 'edge-playground') {
     document.getElementById('tabEdgePlayground').classList.add('active');
     document.getElementById('viewEdgePlayground').classList.add('active');

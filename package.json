@@ -18,6 +18,8 @@
   "author": "Forward Deployed Engineer Candidate",
   "license": "MIT",
   "dependencies": {
+    "@langchain/core": "^1.3.2",
+    "@langchain/langgraph": "^1.6.0",
     "cors": "^2.8.5",
     "express": "^4.21.2"
   }

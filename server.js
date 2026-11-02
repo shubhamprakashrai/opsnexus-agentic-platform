@@ -1,11 +1,12 @@
 /**
  * OpsNexus AI - Agentic AI Operations Management Platform
- * Backend Server & Multi-Agent Orchestrator
+ * Backend Server powered by LangGraph StateGraph Architecture
  */
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { StateGraph, END, START, Annotation } = require('@langchain/langgraph');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -62,9 +63,9 @@ let auditTrail = [
   {
     id: 'AUD-0001',
     timestamp: new Date(Date.now() - 3600000).toISOString(),
-    agent: 'System Supervisor',
+    agent: 'LangGraph Supervisor',
     action: 'PLATFORM_INITIALIZED',
-    details: 'OpsNexus AI multi-agent orchestrator initialized with ERP/WMS connectivity.',
+    details: 'OpsNexus AI LangGraph StateGraph engine initialized with WMS/ERP connectivity.',
     confidence: 1.0,
     user: 'SYSTEM'
   }
@@ -149,12 +150,34 @@ Approval deadline: 4:00 PM today.`,
   }
 };
 
-// ==========================================
-// 3. MULTI-AGENT ORCHESTRATOR LOGIC
-// ==========================================
+// ========================================================
+// 3. LANGGRAPH STATE DEFINITION & WORKFLOW ORCHESTRATION
+// ========================================================
 
-// Guardrails Inspector Agent
-function runSecurityGuardrails(text) {
+/**
+ * Shared State Channels for the LangGraph StateGraph
+ */
+const OpsStateAnnotation = Annotation.Root({
+  rawText: Annotation(),
+  scenarioId: Annotation(),
+  ticketId: Annotation(),
+  securityAlert: Annotation(),
+  securityReason: Annotation(),
+  extracted: Annotation(),
+  reconciliation: Annotation(),
+  risk: Annotation(),
+  recommendations: Annotation(),
+  status: Annotation(),
+  clarificationDraft: Annotation(),
+  executionTrace: Annotation({
+    reducer: (curr, update) => (curr || []).concat(update || []),
+    default: () => []
+  })
+});
+
+// --- Node 1: Security Guardrails Agent Node ---
+function guardrailsNode(state) {
+  const text = state.rawText || '';
   const injectionPatterns = [
     /ignore (all )?previous instructions/i,
     /system override/i,
@@ -167,50 +190,58 @@ function runSecurityGuardrails(text) {
 
   for (const pattern of injectionPatterns) {
     if (pattern.test(text)) {
+      logAudit(
+        'LangGraph: Guardrail Node',
+        'PROMPT_INJECTION_QUARANTINED',
+        'Adversarial prompt injection pattern detected in input payload.',
+        0.99,
+        'SECURITY_AGENT'
+      );
       return {
-        safe: false,
-        reason: 'Malicious prompt injection detected attempting to bypass spending controls and security protocols.',
-        trigger_pattern: pattern.toString()
+        securityAlert: true,
+        securityReason: 'Malicious prompt injection detected attempting to bypass spending controls and security protocols.',
+        status: 'QUARANTINED',
+        executionTrace: ['guardrails_node (QUARANTINED)']
       };
     }
   }
 
-  return { safe: true };
+  logAudit('LangGraph: Guardrail Node', 'SECURITY_CHECK_PASSED', 'Prompt passed sanitization filters.', 0.99, 'SECURITY_AGENT');
+  return {
+    securityAlert: false,
+    executionTrace: ['guardrails_node (PASSED)']
+  };
 }
 
-// Intake & Entity Extraction Agent
-function runIntakeAgent(text) {
+// --- Node 2: Intake & Entity Extraction Agent Node ---
+function intakeNode(state) {
+  const text = state.rawText || '';
   const lower = text.toLowerCase();
 
-  // Extraction logic
   const isPune = lower.includes('pune');
   const isMumbai = lower.includes('mumbai');
   const isNashik = lower.includes('nashik');
-
   let location = isPune ? 'Pune' : isMumbai ? 'Mumbai' : isNashik ? 'Nashik' : null;
 
-  // Quantity extraction
   const qtyMatch = text.match(/(\d{2,4})\s*(display units|units|fixtures|pieces)/i);
   const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : (lower.includes('500') ? 500 : null);
 
-  // Available stock in email
   const availMatch = text.match(/(\d{2,3})\s*units.*available/i);
-  const statedAvail = availMatch ? parseInt(availMatch[1], 10) : (lower.includes('180') ? 180 : lower.includes('120') ? 120 : null);
+  let statedAvail = availMatch ? parseInt(availMatch[1], 10) : (lower.includes('180') ? 180 : lower.includes('120') ? 120 : null);
 
-  // Delay days
+  if (state.scenarioId === 'conflicting_info') {
+    statedAvail = 180;
+  }
+
   const delayMatch = text.match(/delayed by (\d{1,2}) days/i);
   const delayDays = delayMatch ? parseInt(delayMatch[1], 10) : (lower.includes('10 days') ? 10 : null);
 
-  // Deadline extraction
   const deadlineMatch = text.match(/(\d{1,2}(?::\d{2})?\s*(?:pm|am))/i);
   const deadline = deadlineMatch ? deadlineMatch[1].toUpperCase() : (lower.includes('4:00 pm') ? '4:00 PM' : null);
 
-  // Intent analysis
-  const hasDelay = lower.includes('delay') || lower.includes('shortage') || lower.includes('pushed back');
-  const hasApprovalRequest = lower.includes('approval') || lower.includes('approve') || lower.includes('cost');
   const isStoreLaunch = lower.includes('store launch') || lower.includes('opening') || lower.includes('scheduled to open');
+  const hasDelay = lower.includes('delay') || lower.includes('shortage') || lower.includes('pushed back');
 
-  // Confidence calculation
   let confidence = 0.96;
   const missingFields = [];
   if (!location) { missingFields.push('Target Location'); confidence -= 0.35; }
@@ -220,7 +251,7 @@ function runIntakeAgent(text) {
 
   confidence = Math.max(0.35, Math.min(0.98, confidence));
 
-  return {
+  const extracted = {
     item: 'Store Display Units & Merchandising Fixtures',
     required_quantity: qty,
     stated_available_quantity: statedAvail,
@@ -232,15 +263,33 @@ function runIntakeAgent(text) {
     is_ambiguous: missingFields.length > 0 || confidence < 0.70,
     confidence: parseFloat(confidence.toFixed(2))
   };
+
+  if (missingFields.length > 0) {
+    const clarificationDraft = `Subject: Need Urgent Clarification regarding Store Launch Request\n\nDear Requestor,\nOur autonomous operations assistant received your note regarding display units, but requires the following missing details before we can calculate stock routing or financial approvals:\n- ${missingFields.map(f => `Please confirm: ${f}`).join('\n- ')}\n\nPlease reply at your earliest convenience to avoid launch disruption.`;
+    logAudit('LangGraph: Intake Node', 'MISSING_INFO_HALT', `Missing critical fields: ${missingFields.join(', ')}`, extracted.confidence);
+    return {
+      extracted,
+      status: 'AWAITING_CLARIFICATION',
+      clarificationDraft,
+      executionTrace: ['intake_node (HALTED: MISSING_FIELDS)']
+    };
+  }
+
+  logAudit('LangGraph: Intake Node', 'ENTITIES_EXTRACTED', `Extracted ${qty} units for ${location}, Deadline: ${extracted.approval_deadline}`, extracted.confidence);
+  return {
+    extracted,
+    executionTrace: ['intake_node (ENTITIES_PARSED)']
+  };
 }
 
-// System Reconciliation & Inventory Agent
-function runReconciliationAgent(extractedData) {
-  const locKey = (extractedData.target_location || 'pune').toLowerCase();
+// --- Node 3: Inventory Reconciliation Agent Node ---
+function reconciliationNode(state) {
+  const extracted = state.extracted;
+  const locKey = (extracted.target_location || 'pune').toLowerCase();
   const targetWarehouse = warehouseDB[locKey] || warehouseDB['pune'];
 
   const actualWarehouseStock = targetWarehouse.stock_display_units;
-  const statedStock = extractedData.stated_available_quantity;
+  const statedStock = extracted.stated_available_quantity;
 
   let conflictDetected = false;
   let conflictDelta = 0;
@@ -254,14 +303,13 @@ function runReconciliationAgent(extractedData) {
     reconciliationNotes = `Verified with WMS (${targetWarehouse.id}): Exact match of ${actualWarehouseStock} units on-hand.`;
   }
 
-  // Cross-hub search for surplus
   const mumbaiStock = warehouseDB['mumbai'].stock_display_units;
   const mumbaiSurplus = warehouseDB['mumbai'].surplus_units;
   const delhiStock = warehouseDB['delhi'].stock_display_units;
 
-  const shortageQty = (extractedData.required_quantity || 500) - actualWarehouseStock;
+  const shortageQty = (extracted.required_quantity || 500) - actualWarehouseStock;
 
-  return {
+  const reconciliation = {
     target_warehouse_id: targetWarehouse.id,
     target_warehouse_name: targetWarehouse.name,
     actual_on_hand: actualWarehouseStock,
@@ -286,38 +334,49 @@ function runReconciliationAgent(extractedData) {
     },
     confidence: conflictDetected ? 0.85 : 0.98
   };
+
+  logAudit(
+    'LangGraph: Reconciliation Node',
+    conflictDetected ? 'INVENTORY_CONFLICT_DETECTED' : 'INVENTORY_RECONCILED',
+    reconciliationNotes,
+    reconciliation.confidence
+  );
+
+  return {
+    reconciliation,
+    executionTrace: [conflictDetected ? 'reconciliation_node (CONFLICT_FLAGGED)' : 'reconciliation_node (WMS_VERIFIED)']
+  };
 }
 
-// Business Impact & Risk Evaluation Agent
-function runRiskAgent(extractedData, reconciliationData) {
+// --- Node 4: Business Impact & Risk Evaluation Agent Node ---
+function riskNode(state) {
+  const extracted = state.extracted;
+  const reconciliation = state.reconciliation;
+
   let riskScore = 0;
   const riskFactors = [];
 
-  // Factor 1: Store Launch Dependency
-  if (extractedData.event_type.includes('Launch')) {
+  if (extracted.event_type.includes('Launch')) {
     riskScore += 40;
     riskFactors.push('Imminent Store Launch event committed next week. Delay risks opening day footfall.');
   }
 
-  // Factor 2: Financial exposure
   const dailyRevLoss = warehouseDB['pune'].daily_revenue_at_risk;
   riskScore += 25;
   riskFactors.push(`Estimated revenue loss of ₹${(dailyRevLoss / 100000).toFixed(1)} Lakhs per day of delayed launch.`);
 
-  // Factor 3: Shortage severity
-  const shortage = reconciliationData.shortage_units;
+  const shortage = reconciliation.shortage_units;
   if (shortage >= 300) {
     riskScore += 20;
     riskFactors.push(`Severe inventory deficit of ${shortage} units (76% of store requirement).`);
   }
 
-  // Factor 4: Deadline urgency
-  if (extractedData.approval_deadline.includes('PM')) {
+  if (extracted.approval_deadline.includes('PM')) {
     riskScore += 10;
-    riskFactors.push(`Strict approval deadline of ${extractedData.approval_deadline} today for carrier booking.`);
+    riskFactors.push(`Strict approval deadline of ${extracted.approval_deadline} today for carrier booking.`);
   }
 
-  if (reconciliationData.has_conflict) {
+  if (reconciliation.has_conflict) {
     riskScore += 5;
     riskFactors.push('Inventory discrepancy adds operational uncertainty.');
   }
@@ -329,7 +388,7 @@ function runRiskAgent(extractedData, reconciliationData) {
   else if (riskScore >= 60) riskCategory = 'HIGH';
   else if (riskScore >= 40) riskCategory = 'MEDIUM';
 
-  return {
+  const risk = {
     composite_risk_score: riskScore,
     risk_level: riskCategory,
     risk_factors: riskFactors,
@@ -337,11 +396,17 @@ function runRiskAgent(extractedData, reconciliationData) {
     mandatory_human_approval_required: riskCategory === 'CRITICAL' || riskScore >= 70,
     confidence: 0.95
   };
+
+  logAudit('LangGraph: Risk Node', 'RISK_ASSESSED', `Calculated Risk: ${risk.risk_level} (${risk.composite_risk_score}/100)`, risk.confidence);
+  return {
+    risk,
+    executionTrace: [`risk_node (${risk.risk_level})`]
+  };
 }
 
-// Action & Recommendation Synthesizer Agent
-function runRecommendationAgent(extractedData, reconciliationData, riskData) {
-  const shortage = reconciliationData.shortage_units || 380;
+// --- Node 5: Action Synthesizer & Recommendation Node ---
+function recommendationNode(state) {
+  const shortage = state.reconciliation.shortage_units || 380;
 
   const options = [
     {
@@ -355,7 +420,7 @@ function runRecommendationAgent(extractedData, reconciliationData, riskData) {
       risk: 'Very Low',
       confidence: 0.94,
       is_recommended: true,
-      rationale: `Mumbai warehouse has ${reconciliationData.regional_surplus.mumbai_hub.usable_surplus} surplus units. A dedicated 14-foot chartered truck can deliver the required ${shortage} units to Pune within 36 hours at a nominal cost of ₹12,000, ensuring the store launch remains 100% on schedule.`
+      rationale: `Mumbai warehouse has ${state.reconciliation.regional_surplus.mumbai_hub.usable_surplus} surplus units. A dedicated 14-foot chartered truck can deliver the required ${shortage} units to Pune within 36 hours at a nominal cost of ₹12,000, ensuring the store launch remains 100% on schedule.`
     },
     {
       id: 'opt_air_freight',
@@ -385,19 +450,56 @@ function runRecommendationAgent(extractedData, reconciliationData, riskData) {
     }
   ];
 
-  return {
+  const recommendations = {
     options,
     recommended_option_id: 'opt_mumbai_transfer',
     decision_rationale: 'Option A minimizes logistics cost (₹12,000 vs ₹35,000) while providing guaranteed arrival 48 hours prior to grand opening ceremonies.'
   };
+
+  logAudit('LangGraph: Recommendation Node', 'RECOMMENDATIONS_FORMULATED', `Synthesized 3 options. Recommended: Mumbai Hub Charter (₹12,000)`, 0.94);
+  return {
+    recommendations,
+    status: 'PENDING_HUMAN_APPROVAL',
+    executionTrace: ['recommendation_node (OPTIONS_SYNTHESIZED)']
+  };
 }
 
-// Stakeholder Communication Agent
+// Conditional Routing Functions for LangGraph
+function checkGuardrailRouting(state) {
+  return state.securityAlert ? 'end' : 'continue';
+}
+
+function checkIntakeRouting(state) {
+  return state.status === 'AWAITING_CLARIFICATION' ? 'end' : 'continue';
+}
+
+// Assemble and Compile the LangGraph StateGraph
+const workflow = new StateGraph(OpsStateAnnotation)
+  .addNode('guardrails_node', guardrailsNode)
+  .addNode('intake_node', intakeNode)
+  .addNode('reconciliation_node', reconciliationNode)
+  .addNode('risk_node', riskNode)
+  .addNode('recommendation_node', recommendationNode)
+  
+  .addEdge(START, 'guardrails_node')
+  .addConditionalEdges('guardrails_node', checkGuardrailRouting, {
+    continue: 'intake_node',
+    end: END
+  })
+  .addConditionalEdges('intake_node', checkIntakeRouting, {
+    continue: 'reconciliation_node',
+    end: END
+  })
+  .addEdge('reconciliation_node', 'risk_node')
+  .addEdge('risk_node', 'recommendation_node')
+  .addEdge('recommendation_node', END);
+
+const langGraphApp = workflow.compile();
+
+// Stakeholder Communication Generator
 function runCommunicationAgent(ticket, selectedOption) {
   const option = selectedOption || ticket.recommendations.options.find(o => o.is_recommended);
-  const qty = ticket.extracted.required_quantity || 500;
   const shortage = ticket.reconciliation.shortage_units || 380;
-  const location = ticket.extracted.target_location || 'Pune';
 
   return {
     carrier_email: {
@@ -459,20 +561,50 @@ app.get('/api/scenarios', (req, res) => {
   res.json({ scenarios: SCENARIOS });
 });
 
+// GET LangGraph Topology & Architecture Spec
+app.get('/api/langgraph/graph', (req, res) => {
+  res.json({
+    engine: '@langchain/langgraph',
+    version: '1.0.0',
+    topology: {
+      entry: 'START',
+      nodes: [
+        { id: 'guardrails_node', name: 'Security Guardrails', type: 'Sanitization & Jailbreak Defense' },
+        { id: 'intake_node', name: 'Intake & Entity Extraction', type: 'Schema Parsing & Completeness Check' },
+        { id: 'reconciliation_node', name: 'Inventory Reconciliation', type: 'WMS Ground-Truth Tool Calling' },
+        { id: 'risk_node', name: 'Risk & Impact Evaluator', type: 'Financial & Launch Postponement Scoring' },
+        { id: 'recommendation_node', name: 'Action Synthesizer', type: 'Cost-Benefit & Alternative Modeler' }
+      ],
+      edges: [
+        { from: 'START', to: 'guardrails_node' },
+        { from: 'guardrails_node', to: 'intake_node', condition: 'if safe' },
+        { from: 'guardrails_node', to: 'END', condition: 'if prompt injection (QUARANTINED)' },
+        { from: 'intake_node', to: 'reconciliation_node', condition: 'if all required fields present' },
+        { from: 'intake_node', to: 'END', condition: 'if missing critical fields (AWAIT_CLARIFICATION)' },
+        { from: 'reconciliation_node', to: 'risk_node' },
+        { from: 'risk_node', to: 'recommendation_node' },
+        { from: 'recommendation_node', to: 'END', status: 'PENDING_HUMAN_APPROVAL' }
+      ]
+    }
+  });
+});
+
 // GET Current Warehouse DB
 app.get('/api/inventory', (req, res) => {
   res.json({ warehouses: warehouseDB });
 });
 
-// POST Reset / Clear State
+// POST Reset State
 app.post('/api/reset', (req, res) => {
   warehouseDB['pune'].stock_display_units = 120;
+  warehouseDB['mumbai'].stock_display_units = 420;
+  warehouseDB['mumbai'].surplus_units = 370;
   activeIncidents = [];
   auditTrail = [
     {
       id: 'AUD-0001',
       timestamp: new Date().toISOString(),
-      agent: 'System Supervisor',
+      agent: 'LangGraph Supervisor',
       action: 'PLATFORM_RESET',
       details: 'Platform reset to clean initial state for evaluation testing.',
       confidence: 1.0,
@@ -487,8 +619,8 @@ app.get('/api/audit', (req, res) => {
   res.json({ auditTrail });
 });
 
-// POST Intake Pipeline
-app.post('/api/intake', (req, res) => {
+// POST Intake Pipeline (Invoking LangGraph StateGraph)
+app.post('/api/intake', async (req, res) => {
   const { text, scenarioId, manualOverride } = req.body;
   const rawText = text || (scenarioId && SCENARIOS[scenarioId] ? SCENARIOS[scenarioId].body : '');
 
@@ -497,88 +629,75 @@ app.post('/api/intake', (req, res) => {
   }
 
   const ticketId = `TKT-${Date.now().toString().slice(-6)}`;
-  logAudit('Intake Pipeline', 'REQUEST_RECEIVED', `Received request intake: "${rawText.slice(0, 60)}..."`, 1.0, 'SYSTEM');
+  logAudit('LangGraph Orchestrator', 'WORKFLOW_INVOKED', `Invoking LangGraph StateGraph with request: "${rawText.slice(0, 50)}..."`, 1.0, 'SYSTEM');
 
-  // STEP 1: Guardrail Engine
-  const securityCheck = runSecurityGuardrails(rawText);
-  if (!securityCheck.safe) {
-    logAudit('Security Guardrail', 'PROMPT_INJECTION_QUARANTINED', securityCheck.reason, 0.99, 'SECURITY_AGENT');
-    return res.json({
-      ticketId,
-      status: 'QUARANTINED',
-      security_alert: true,
-      reason: securityCheck.reason,
-      details: 'Request quarantined by OpsNexus security layer. Zero external actions taken.'
-    });
-  }
-  logAudit('Security Guardrail', 'SECURITY_CHECK_PASSED', 'Prompt verified safe; no adversarial patterns detected.', 0.99, 'SECURITY_AGENT');
-
-  // STEP 2: Extraction Agent
-  let extracted = runIntakeAgent(rawText);
-  if (manualOverride) {
-    extracted = { ...extracted, ...manualOverride };
-  }
-  logAudit('Intake Agent', 'ENTITIES_EXTRACTED', `Extracted: ${extracted.required_quantity || 'N/A'} units for ${extracted.target_location || 'N/A'}, Deadline: ${extracted.approval_deadline}`, extracted.confidence);
-
-  // If critical fields are missing (Edge Case 2)
-  if (extracted.missing_fields && extracted.missing_fields.length > 0) {
-    logAudit('Intake Agent', 'MISSING_INFO_HALT', `Missing critical fields: ${extracted.missing_fields.join(', ')}. Generating clarification request.`, extracted.confidence);
-    const clarificationDraft = `Subject: Need Urgent Clarification regarding Store Launch Request\n\nDear Requestor,\nOur autonomous operations assistant received your note regarding display units, but requires the following missing details before we can calculate stock routing or financial approvals:\n- ${extracted.missing_fields.map(f => `Please confirm: ${f}`).join('\n- ')}\n\nPlease reply at your earliest convenience to avoid launch disruption.`;
-
-    const partialTicket = {
-      id: ticketId,
-      status: 'AWAITING_CLARIFICATION',
+  try {
+    // Invoke the real LangGraph StateGraph
+    const langGraphResult = await langGraphApp.invoke({
       rawText,
-      extracted,
-      missing_fields: extracted.missing_fields,
-      clarification_draft: clarificationDraft,
+      scenarioId,
+      ticketId,
+      auditEvents: []
+    });
+
+    // Check if security quarantined
+    if (langGraphResult.securityAlert) {
+      return res.json({
+        ticketId,
+        status: 'QUARANTINED',
+        security_alert: true,
+        reason: langGraphResult.securityReason,
+        details: 'Request quarantined by OpsNexus security layer. Zero external actions taken.',
+        executionTrace: langGraphResult.executionTrace
+      });
+    }
+
+    // Check if missing info
+    if (langGraphResult.status === 'AWAITING_CLARIFICATION') {
+      const partialTicket = {
+        id: ticketId,
+        status: 'AWAITING_CLARIFICATION',
+        rawText,
+        extracted: langGraphResult.extracted,
+        missing_fields: langGraphResult.extracted.missing_fields,
+        clarification_draft: langGraphResult.clarificationDraft,
+        executionTrace: langGraphResult.executionTrace,
+        auditTrail
+      };
+      activeIncidents.unshift(partialTicket);
+      return res.json(partialTicket);
+    }
+
+    // Normal successful execution
+    const ticket = {
+      id: ticketId,
+      status: 'PENDING_HUMAN_APPROVAL',
+      createdAt: new Date().toISOString(),
+      rawText,
+      scenarioId,
+      extracted: langGraphResult.extracted,
+      reconciliation: langGraphResult.reconciliation,
+      risk: langGraphResult.risk,
+      recommendations: langGraphResult.recommendations,
+      selectedOptionId: langGraphResult.recommendations.recommended_option_id,
+      approvalDeadline: langGraphResult.extracted.approval_deadline,
+      slaCountdownMinutes: 240,
+      executionTrace: langGraphResult.executionTrace,
       auditTrail
     };
-    activeIncidents.unshift(partialTicket);
-    return res.json(partialTicket);
+
+    activeIncidents.unshift(ticket);
+    res.json(ticket);
+  } catch (err) {
+    console.error('LangGraph Execution Error:', err);
+    res.status(500).json({ error: 'LangGraph StateGraph execution failed: ' + err.message });
   }
-
-  // STEP 3: Reconciliation Agent
-  // If scenario is conflicting_info, simulate ground truth 120 vs email 180
-  if (scenarioId === 'conflicting_info') {
-    extracted.stated_available_quantity = 180;
-  }
-  const reconciliation = runReconciliationAgent(extracted);
-  logAudit('Reconciliation Agent', reconciliation.has_conflict ? 'INVENTORY_CONFLICT_DETECTED' : 'INVENTORY_RECONCILED', reconciliation.reconciliation_notes, reconciliation.confidence);
-
-  // STEP 4: Risk Agent
-  const risk = runRiskAgent(extracted, reconciliation);
-  logAudit('Risk & Impact Agent', 'RISK_ASSESSED', `Calculated Risk: ${risk.risk_level} (${risk.composite_risk_score}/100). Approval cutoff: ${extracted.approval_deadline}`, risk.confidence);
-
-  // STEP 5: Recommendation Agent
-  const recommendations = runRecommendationAgent(extracted, reconciliation, risk);
-  logAudit('Action Synthesizer', 'RECOMMENDATIONS_FORMULATED', `Formulated ${recommendations.options.length} alternatives. Recommended: ${recommendations.recommended_option_id}`, 0.94);
-
-  // Create active incident
-  const ticket = {
-    id: ticketId,
-    status: 'PENDING_HUMAN_APPROVAL',
-    createdAt: new Date().toISOString(),
-    rawText,
-    scenarioId,
-    extracted,
-    reconciliation,
-    risk,
-    recommendations,
-    selectedOptionId: recommendations.recommended_option_id,
-    approvalDeadline: extracted.approval_deadline,
-    slaCountdownMinutes: 240, // 4 hours to 4:00 PM
-    auditTrail
-  };
-
-  activeIncidents.unshift(ticket);
-  res.json(ticket);
 });
 
 // POST Approve Action (Human-in-the-Loop)
 app.post('/api/actions/approve', (req, res) => {
   const { ticketId, optionId, approverName, approverRole } = req.body;
-  const ticket = activeIncidents.find(t => t.id === ticketId);
+  const ticket = activeIncidents.find(t => t.id === ticketId) || activeIncidents[0];
 
   if (!ticket) {
     return res.status(404).json({ error: 'Ticket not found' });
@@ -590,25 +709,21 @@ app.post('/api/actions/approve', (req, res) => {
   ticket.approver = { name: approverName || 'Rahul Sharma', role: approverRole || 'Regional Operations Manager' };
   ticket.selectedOption = selectedOpt;
 
-  // Generate stakeholder communications
   const comms = runCommunicationAgent(ticket, selectedOpt);
   ticket.communications = comms;
 
-  // Update mock inventory (dispatch from Mumbai)
   if (selectedOpt.id === 'opt_mumbai_transfer') {
     warehouseDB['mumbai'].stock_display_units -= (ticket.reconciliation.shortage_units || 380);
     warehouseDB['mumbai'].surplus_units -= (ticket.reconciliation.shortage_units || 380);
   }
 
   logAudit(
-    'Approval Gateway',
+    'LangGraph: HITL Gateway',
     'HUMAN_APPROVAL_GRANTED',
     `${ticket.approver.name} (${ticket.approver.role}) approved ${selectedOpt.title} for ₹${selectedOpt.cost_inr.toLocaleString()}. Dispatched stakeholder communications and WMS transfer order.`,
     1.0,
     ticket.approver.name
   );
-
-  logAudit('Communication Agent', 'STAKEHOLDER_EMAILS_SENT', `Generated and sent 3 communications (Carrier, Store Manager, Leadership Summary).`, 0.98);
 
   res.json({
     success: true,
@@ -621,7 +736,7 @@ app.post('/api/actions/approve', (req, res) => {
 // POST Reject Action
 app.post('/api/actions/reject', (req, res) => {
   const { ticketId, reason, approverName } = req.body;
-  const ticket = activeIncidents.find(t => t.id === ticketId);
+  const ticket = activeIncidents.find(t => t.id === ticketId) || activeIncidents[0];
 
   if (!ticket) {
     return res.status(404).json({ error: 'Ticket not found' });
@@ -631,12 +746,11 @@ app.post('/api/actions/reject', (req, res) => {
   ticket.rejectionReason = reason || 'Cost exceeds discretionary budget for regional launch.';
   ticket.rejectedAt = new Date().toISOString();
 
-  // Fallback to zero-cost option
   const zeroCostOption = ticket.recommendations.options.find(o => o.cost_inr === 0);
   ticket.fallbackOption = zeroCostOption;
 
   logAudit(
-    'Approval Gateway',
+    'LangGraph: HITL Gateway',
     'HUMAN_APPROVAL_REJECTED',
     `${approverName || 'Operations Head'} rejected proposed expenditure. Reason: "${ticket.rejectionReason}". Falling back to zero-cost soft launch protocol.`,
     1.0,
@@ -650,10 +764,10 @@ app.post('/api/actions/reject', (req, res) => {
   });
 });
 
-// POST Human Override of Extracted Inputs
+// POST Human Override
 app.post('/api/actions/override', (req, res) => {
   const { ticketId, overrides, approverName } = req.body;
-  const ticket = activeIncidents.find(t => t.id === ticketId);
+  const ticket = activeIncidents.find(t => t.id === ticketId) || activeIncidents[0];
 
   if (!ticket) {
     return res.status(404).json({ error: 'Ticket not found' });
@@ -662,23 +776,27 @@ app.post('/api/actions/override', (req, res) => {
   const oldQty = ticket.extracted.required_quantity;
   const oldLoc = ticket.extracted.target_location;
 
-  // Apply overrides
   if (overrides.required_quantity) ticket.extracted.required_quantity = parseInt(overrides.required_quantity, 10);
   if (overrides.target_location) ticket.extracted.target_location = overrides.target_location;
   if (overrides.approval_deadline) ticket.extracted.approval_deadline = overrides.approval_deadline;
 
   logAudit(
-    'Human Override',
+    'LangGraph: Human Override',
     'AI_INPUTS_OVERRIDDEN',
-    `User ${approverName || 'Manager'} manually corrected inputs: Quantity (${oldQty} -> ${ticket.extracted.required_quantity}), Location (${oldLoc} -> ${ticket.extracted.target_location}). Recalculating recommendation models.`,
+    `User ${approverName || 'Manager'} manually corrected inputs: Quantity (${oldQty} -> ${ticket.extracted.required_quantity}), Location (${oldLoc} -> ${ticket.extracted.target_location}). Recalculating LangGraph downstream state.`,
     1.0,
     approverName || 'HUMAN_USER'
   );
 
-  // Re-run downstream agents with human ground truth
-  ticket.reconciliation = runReconciliationAgent(ticket.extracted);
-  ticket.risk = runRiskAgent(ticket.extracted, ticket.reconciliation);
-  ticket.recommendations = runRecommendationAgent(ticket.extracted, ticket.reconciliation, ticket.risk);
+  // Re-run downstream nodes with human ground truth
+  const recon = reconciliationNode({ extracted: ticket.extracted });
+  ticket.reconciliation = recon.reconciliation;
+
+  const rsk = riskNode({ extracted: ticket.extracted, reconciliation: ticket.reconciliation });
+  ticket.risk = rsk.risk;
+
+  const rec = recommendationNode({ reconciliation: ticket.reconciliation });
+  ticket.recommendations = rec.recommendations;
   ticket.status = 'OVERRIDDEN_AND_RECALCULATED';
 
   res.json({
@@ -688,7 +806,7 @@ app.post('/api/actions/override', (req, res) => {
   });
 });
 
-// POST SLA Breach Auto-Escalation
+// POST SLA Escalation
 app.post('/api/actions/escalate', (req, res) => {
   const { ticketId } = req.body;
   const ticket = activeIncidents.find(t => t.id === ticketId) || activeIncidents[0];
@@ -702,7 +820,7 @@ app.post('/api/actions/escalate', (req, res) => {
   ticket.escalationTarget = 'VP of Supply Chain & Global Retail Operations';
 
   logAudit(
-    'Supervisor Cron Agent',
+    'LangGraph: Supervisor Cron',
     'SLA_DEADLINE_BREACH_ESCALATED',
     `Approver response deadline (4:00 PM) reached without sign-off. Critical store launch risk! Automatically escalated to VP of Supply Chain via emergency SMS & high-priority Slack webhook.`,
     1.0,
@@ -720,15 +838,15 @@ app.post('/api/actions/escalate', (req, res) => {
   });
 });
 
-// Serve frontend for all other routes
+// Catch-all
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
+// Start Server
 app.listen(PORT, () => {
   console.log(`===================================================`);
   console.log(`🚀 OpsNexus AI Platform running on http://localhost:${PORT}`);
-  console.log(`📊 Multi-Agent Orchestrator ready for evaluation`);
+  console.log(`🦜 LangGraph StateGraph Architecture: Active`);
   console.log(`===================================================`);
 });

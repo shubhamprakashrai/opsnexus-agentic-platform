@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="OpsNexus AI: Autonomous Agentic Operations Management Platform for Omnichannel Retail. Built for Forward Deployed Engineer technical evaluation.">
+  <meta name="description" content="OpsNexus AI: Autonomous Agentic Operations Management Platform for Omnichannel Retail powered by LangGraph. Built for Forward Deployed Engineer technical evaluation.">
   <title>OpsNexus AI | Autonomous Retail Operations Platform</title>
   <!-- Google Fonts: Inter & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,54 +13,62 @@
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
+  <!-- Top Navigation Header -->
   <header class="app-header" id="appHeader">
-    <div class="header-left">
-      <div class="logo-group">
+    <div class="header-top-row">
+      <div class="header-branding">
         <div class="logo-icon">⚡</div>
         <div class="logo-text">
-          <span class="logo-title">OpsNexus<span class="gradient-text">.ai</span></span>
-          <span class="logo-subtitle">Agentic Retail Operations Assistant</span>
+          <div class="logo-title-wrap">
+            <span class="logo-title">OpsNexus<span class="gradient-text">.ai</span></span>
+            <span class="langgraph-badge">🦜 LangGraph Engine</span>
+          </div>
+          <span class="logo-subtitle">Autonomous Retail Operations Assistant</span>
         </div>
       </div>
+
       <div class="system-status-pill" id="systemStatusPill">
         <span class="status-dot pulsing"></span>
         <span class="status-label">ERP / WMS Live: Pune (120) • Mumbai (420) • Delhi (650)</span>
       </div>
+
+      <div class="header-controls">
+        <div class="role-selector-card">
+          <span class="role-label">Active Role:</span>
+          <select id="userRoleSelect" class="role-select" onchange="onRoleChange(this.value)">
+            <option value="ROM" selected>Rahul Sharma (Regional Ops Manager - Approver)</option>
+            <option value="OPS_COORD">Priya Nair (Operations Coordinator)</option>
+            <option value="VP_SCM">Vikram Malhotra (VP of Supply Chain)</option>
+          </select>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnResetDemo" onclick="resetDemoState()" title="Reset platform to clean state">
+          🔄 Reset
+        </button>
+      </div>
     </div>
 
-    <!-- Main Navigation Tabs -->
-    <nav class="nav-tabs" id="mainNavTabs" aria-label="Main Navigation">
-      <button class="nav-tab active" id="tabCommandCenter" onclick="switchMainTab('command-center')">
-        <span class="nav-icon">⚡</span> Operations Console
-      </button>
-      <button class="nav-tab" id="tabEdgePlayground" onclick="switchMainTab('edge-playground')">
-        <span class="nav-icon">🧪</span> Edge Case Lab
-      </button>
-      <button class="nav-tab" id="tabPrdViewer" onclick="switchMainTab('prd-viewer')">
-        <span class="nav-icon">📑</span> PRD Spec
-      </button>
-      <button class="nav-tab" id="tabPresentation" onclick="switchMainTab('presentation')">
-        <span class="nav-icon">📊</span> 8–10 Slide PPT
-      </button>
-      <button class="nav-tab" id="tabVideoGuide" onclick="switchMainTab('video-guide')">
-        <span class="nav-icon">🎥</span> 10-Min Demo Guide
-      </button>
-    </nav>
-
-    <!-- User / Role Switcher -->
-    <div class="header-right">
-      <div class="role-selector-card">
-        <span class="role-label">Active Role:</span>
-        <select id="userRoleSelect" class="role-select" onchange="onRoleChange(this.value)">
-          <option value="ROM" selected>Rahul Sharma (Regional Ops Manager - Approver)</option>
-          <option value="OPS_COORD">Priya Nair (Operations Coordinator)</option>
-          <option value="VP_SCM">Vikram Malhotra (VP of Supply Chain)</option>
-        </select>
-      </div>
-      <button class="btn btn-outline btn-sm" id="btnResetDemo" onclick="resetDemoState()" title="Reset platform to clean state">
-        🔄 Reset
-      </button>
+    <!-- Header Navigation Tabs -->
+    <div class="header-nav-row">
+      <nav class="nav-tabs" id="mainNavTabs" aria-label="Main Navigation">
+        <button class="nav-tab active" id="tabCommandCenter" onclick="switchMainTab('command-center')">
+          <span class="nav-icon">⚡</span> Operations Console
+        </button>
+        <button class="nav-tab" id="tabLangGraph" onclick="switchMainTab('langgraph-arch')">
+          <span class="nav-icon">🦜</span> LangGraph Architecture
+        </button>
+        <button class="nav-tab" id="tabEdgePlayground" onclick="switchMainTab('edge-playground')">
+          <span class="nav-icon">🧪</span> Edge Case Lab
+        </button>
+        <button class="nav-tab" id="tabPrdViewer" onclick="switchMainTab('prd-viewer')">
+          <span class="nav-icon">📑</span> PRD Spec
+        </button>
+        <button class="nav-tab" id="tabPresentation" onclick="switchMainTab('presentation')">
+          <span class="nav-icon">📊</span> 8–10 Slide PPT
+        </button>
+        <button class="nav-tab" id="tabVideoGuide" onclick="switchMainTab('video-guide')">
+          <span class="nav-icon">🎥</span> 10-Min Demo Guide
+        </button>
+      </nav>
     </div>
   </header>
 
@@ -129,7 +137,7 @@
 
         <div class="editor-area">
           <label for="requestBodyInput" class="editor-label">Incoming Message Content:</label>
-          <textarea id="requestBodyInput" class="request-textarea" rows="7" placeholder="Paste incoming email or type operational issue here..."></textarea>
+          <textarea id="requestBodyInput" class="request-textarea" rows="6" placeholder="Paste incoming email or type operational issue here..."></textarea>
         </div>
 
         <div class="intake-actions-row">
@@ -138,7 +146,7 @@
           </button>
         </div>
 
-        <!-- Extraction Entity Summary (Populated Post-Execution) -->
+        <!-- Extraction Entity Summary -->
         <div class="extraction-card" id="extractionCard">
           <div class="extraction-header">
             <span class="sub-heading">Extracted Structured Entities</span>
@@ -177,10 +185,10 @@
       <section class="ops-col card" id="colAgents">
         <div class="card-header">
           <div class="card-header-left">
-            <span class="card-badge badge-purple">STEP 2: AGENT ORCHESTRATION</span>
-            <h2 class="card-title">Live Agent Coordination Graph</h2>
+            <span class="card-badge badge-purple">STEP 2: LANGGRAPH ORCHESTRATION</span>
+            <h2 class="card-title">Agent StateGraph Pipeline</h2>
           </div>
-          <span class="agent-count-pill" id="agentCountPill">5 Specialized Agents Active</span>
+          <span class="agent-count-pill" id="agentCountPill">5 Nodes Active</span>
         </div>
 
         <div class="pipeline-graph" id="pipelineGraph">
@@ -190,7 +198,7 @@
             <div class="agent-status-indicator indicator-green" id="indGuardrail">✓</div>
             <div class="agent-node-body">
               <div class="agent-title-row">
-                <span class="agent-name">1. Security Guardrails Agent</span>
+                <span class="agent-name">1. Guardrails Node</span>
                 <span class="agent-latency">12ms</span>
               </div>
               <div class="agent-summary" id="descGuardrail">
@@ -210,7 +218,7 @@
             <div class="agent-status-indicator indicator-green" id="indIntake">✓</div>
             <div class="agent-node-body">
               <div class="agent-title-row">
-                <span class="agent-name">2. Intake & Entity Extraction Agent</span>
+                <span class="agent-name">2. Intake & Entity Node</span>
                 <span class="agent-latency">240ms</span>
               </div>
               <div class="agent-summary" id="descIntake">
@@ -230,7 +238,7 @@
             <div class="agent-status-indicator indicator-green" id="indRecon">✓</div>
             <div class="agent-node-body">
               <div class="agent-title-row">
-                <span class="agent-name">3. WMS & Inventory Reconciliation Agent</span>
+                <span class="agent-name">3. WMS Reconciliation Node</span>
                 <span class="agent-latency">180ms</span>
               </div>
               <div class="agent-summary" id="descRecon">
@@ -250,7 +258,7 @@
             <div class="agent-status-indicator indicator-red" id="indRisk">!</div>
             <div class="agent-node-body">
               <div class="agent-title-row">
-                <span class="agent-name">4. Business Impact & Risk Evaluation Agent</span>
+                <span class="agent-name">4. Impact & Risk Node</span>
                 <span class="agent-latency">95ms</span>
               </div>
               <div class="agent-summary" id="descRisk">
@@ -270,7 +278,7 @@
             <div class="agent-status-indicator indicator-green" id="indAction">✓</div>
             <div class="agent-node-body">
               <div class="agent-title-row">
-                <span class="agent-name">5. Action Synthesizer & Cost Modeler</span>
+                <span class="agent-name">5. Action Synthesizer Node</span>
                 <span class="agent-latency">310ms</span>
               </div>
               <div class="agent-summary" id="descAction">
@@ -346,7 +354,7 @@
               <input type="radio" name="optAction" id="radioOptMumbai" checked>
               <label for="radioOptMumbai">
                 <strong>Option A: Inter-Hub Transfer from Mumbai (₹12,000)</strong>
-                <span class="sub-opt-desc">2 Days transit • Recommmended • Lowest Risk</span>
+                <span class="sub-opt-desc">2 Days transit • Recommended • Lowest Risk</span>
               </label>
             </div>
             <div class="radio-option-item" onclick="selectAlternativeOption('opt_air_freight')">
@@ -449,27 +457,27 @@ OpsNexus Retail Platform
           <!-- Dynamic entries inserted here -->
           <div class="audit-entry">
             <div class="audit-timestamp">10:04:15 AM</div>
-            <div class="audit-pill pill-ai">Action Synthesizer</div>
+            <div class="audit-pill pill-ai">LangGraph: Action</div>
             <div class="audit-text">Formulated 3 options. Recommended Mumbai transfer at ₹12,000 (94% confidence).</div>
           </div>
           <div class="audit-entry">
             <div class="audit-timestamp">10:03:52 AM</div>
-            <div class="audit-pill pill-ai">Risk Agent</div>
+            <div class="audit-pill pill-ai">LangGraph: Risk</div>
             <div class="audit-text">Assessed CRITICAL risk (88/100). Store launch delay exposure: ₹8.5L/day.</div>
           </div>
           <div class="audit-entry">
             <div class="audit-timestamp">10:03:30 AM</div>
-            <div class="audit-pill pill-ai">Reconciliation</div>
+            <div class="audit-pill pill-ai">LangGraph: Recon</div>
             <div class="audit-text">Verified Pune WMS stock (120 units). Located 370 surplus units in Mumbai Central Hub.</div>
           </div>
           <div class="audit-entry">
             <div class="audit-timestamp">10:03:10 AM</div>
-            <div class="audit-pill pill-ai">Intake Agent</div>
+            <div class="audit-pill pill-ai">LangGraph: Intake</div>
             <div class="audit-text">Extracted 500 units for Pune launch, 4:00 PM deadline (96% confidence).</div>
           </div>
           <div class="audit-entry">
             <div class="audit-timestamp">10:03:00 AM</div>
-            <div class="audit-pill pill-guard">Security Guard</div>
+            <div class="audit-pill pill-guard">LangGraph: Guard</div>
             <div class="audit-text">Passed security scan. No adversarial prompt injection detected.</div>
           </div>
         </div>
@@ -479,7 +487,86 @@ OpsNexus Retail Platform
 
   </main>
 
-  <!-- MAIN TAB 2: EDGE CASE PLAYGROUND -->
+  <!-- MAIN TAB 2: LANGGRAPH ARCHITECTURE SPEC -->
+  <section class="tab-content container" id="viewLangGraph">
+    <div class="doc-header">
+      <span class="card-badge badge-purple">STATE MACHINE BLUEPRINT</span>
+      <h1 class="doc-title">🦜 LangGraph StateGraph Architecture</h1>
+      <p class="doc-subtitle">How OpsNexus AI leverages @langchain/langgraph StateGraph for deterministic coordination, cyclic recovery, and shared operational context.</p>
+    </div>
+
+    <div class="langgraph-spec-card card">
+      <h3 class="card-title" style="margin-bottom:1rem;">1. StateGraph Topology & Execution Paths</h3>
+      <div class="langgraph-diagram-box">
+        <pre class="mermaid-ascii">
+   [START]
+      │
+      ▼
+┌──────────────────────────────────────────────┐
+│  node: guardrails_node                       │
+│  - Sanitizes prompt injection & jailbreaks   │
+└──────────────────────────────────────────────┘
+      │
+      ├──────────────────────────────► [END] (QUARANTINED if injection detected)
+      │ (if safe)
+      ▼
+┌──────────────────────────────────────────────┐
+│  node: intake_node                           │
+│  - Entity parsing & completeness check       │
+└──────────────────────────────────────────────┘
+      │
+      ├──────────────────────────────► [END] (AWAITING_CLARIFICATION if fields missing)
+      │ (if complete)
+      ▼
+┌──────────────────────────────────────────────┐
+│  node: reconciliation_node                   │
+│  - Tool calls WMS database (Pune/Mumbai)     │
+│  - Detects stock conflicts (e.g. 180 vs 120) │
+└──────────────────────────────────────────────┘
+      │
+      ▼
+┌──────────────────────────────────────────────┐
+│  node: risk_node                             │
+│  - Computes financial exposure (₹8.5L/day)   │
+│  - Flags CRITICAL urgency for store launch   │
+└──────────────────────────────────────────────┘
+      │
+      ▼
+┌──────────────────────────────────────────────┐
+│  node: recommendation_node                   │
+│  - Formulates 3 alternatives with costs      │
+│  - Sets status: PENDING_HUMAN_APPROVAL       │
+└──────────────────────────────────────────────┘
+      │
+      ▼
+   [END] (Awaiting Human Approval Gate)
+        </pre>
+      </div>
+
+      <h3 class="card-title" style="margin:1.5rem 0 0.75rem 0;">2. Shared State Channels (Annotation.Root)</h3>
+      <table class="spec-table">
+        <thead>
+          <tr><th>Channel Name</th><th>Type</th><th>Reducer Behavior</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>rawText</code></td><td>string</td><td>Overwrite</td><td>Original raw incoming email or manual request payload.</td></tr>
+          <tr><td><code>securityAlert</code></td><td>boolean</td><td>Overwrite</td><td>Flag indicating if prompt injection was quarantined.</td></tr>
+          <tr><td><code>extracted</code></td><td>object</td><td>Merge</td><td>Structured entities: location, demand qty, available qty, deadline.</td></tr>
+          <tr><td><code>reconciliation</code></td><td>object</td><td>Merge</td><td>Ground-truth inventory, discrepancy delta, and regional surplus.</td></tr>
+          <tr><td><code>risk</code></td><td>object</td><td>Merge</td><td>Composite risk score (0-100), risk level, daily revenue loss.</td></tr>
+          <tr><td><code>recommendations</code></td><td>object</td><td>Merge</td><td>Array of 3 logistical options with cost, transit, and confidence.</td></tr>
+          <tr><td><code>executionTrace</code></td><td>array</td><td>Concat Append</td><td>Chronological list of LangGraph nodes executed during pipeline invoke.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="card-title" style="margin:1.5rem 0 0.75rem 0;">3. Human-in-the-Loop Conditional Interrupts</h3>
+      <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.6;">
+        Unlike simple chains, LangGraph allows policy-driven conditional halts. When total action cost exceeds <strong>₹10,000</strong> or the event is tagged as a <strong>Store Grand Opening</strong>, execution pauses at <code>recommendation_node</code> until explicit human authorization is received via the REST API or UI.
+      </p>
+    </div>
+  </section>
+
+  <!-- MAIN TAB 3: EDGE CASE PLAYGROUND -->
   <section class="tab-content container" id="viewEdgePlayground">
     <div class="doc-header">
       <span class="card-badge badge-purple">EVALUATION BENCHMARK</span>
@@ -588,7 +675,7 @@ OpsNexus Retail Platform
     </div>
   </section>
 
-  <!-- MAIN TAB 3: PRD VIEWER -->
+  <!-- MAIN TAB 4: PRD VIEWER -->
   <section class="tab-content container" id="viewPrdViewer">
     <div class="doc-header">
       <span class="card-badge badge-blue">SUBMISSION DELIVERABLE 1</span>
@@ -596,12 +683,11 @@ OpsNexus Retail Platform
       <p class="doc-subtitle">Comprehensive 5-page functional & architectural specification for OpsNexus AI Operations Assistant.</p>
     </div>
     <div class="markdown-rendered-card" id="prdRenderedContainer">
-      <!-- Loaded from backend /docs/PRD.md or rendered content -->
       <div class="loading-spinner">Loading PRD...</div>
     </div>
   </section>
 
-  <!-- MAIN TAB 4: 8-10 SLIDE PRESENTATION VIEWER -->
+  <!-- MAIN TAB 5: 8-10 SLIDE PRESENTATION VIEWER -->
   <section class="tab-content container" id="viewPresentation">
     <div class="doc-header">
       <span class="card-badge badge-purple">SUBMISSION DELIVERABLE 3</span>
@@ -620,7 +706,7 @@ OpsNexus Retail Platform
     </div>
   </section>
 
-  <!-- MAIN TAB 5: 10-MIN VIDEO DEMO GUIDE -->
+  <!-- MAIN TAB 6: 10-MIN VIDEO DEMO GUIDE -->
   <section class="tab-content container" id="viewVideoGuide">
     <div class="doc-header">
       <span class="card-badge badge-green">SUBMISSION DELIVERABLE 4</span>
@@ -628,7 +714,6 @@ OpsNexus Retail Platform
       <p class="doc-subtitle">Turn-by-turn video recording script with exact narration lines, visual actions, and evaluation highlights.</p>
     </div>
     <div class="markdown-rendered-card" id="videoGuideRenderedContainer">
-      <!-- Loaded from DEMO_VIDEO_SCRIPT.md -->
       <div class="loading-spinner">Loading Demo Script...</div>
     </div>
   </section>

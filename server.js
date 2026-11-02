@@ -553,8 +553,74 @@ Regional Operations Team`
 }
 
 // ==========================================
-// 4. REST API ENDPOINTS
+// 4. REST & WEBHOOK API ENDPOINTS
 // ==========================================
+
+// POST Email Webhook (Integrates with SendGrid, Mailgun, MS Graph, or Custom IMAP Listeners)
+app.post('/api/webhook/email', async (req, res) => {
+  // Supports raw text, SendGrid inbound parse, or standard JSON
+  const from = req.body.from || req.body.sender || 'external-partner@supplier.com';
+  const subject = req.body.subject || 'Operational Request via Inbound Webhook';
+  const text = req.body.text || req.body.body || req.body.plain || '';
+
+  if (!text || !text.trim()) {
+    return res.status(400).json({
+      error: 'Empty webhook payload. Expected "text", "body", or SendGrid "plain" field.'
+    });
+  }
+
+  const ticketId = `W傳-${Date.now().toString().slice(-6)}`;
+  logAudit('Email Webhook Adapter', 'INBOUND_EMAIL_RECEIVED', `Received webhook from ${from}: "${subject}"`, 1.0, 'WEBHOOK');
+
+  try {
+    const langGraphResult = await langGraphApp.invoke({
+      rawText: text,
+      scenarioId: 'webhook_inbound',
+      ticketId,
+      auditEvents: []
+    });
+
+    if (langGraphResult.securityAlert) {
+      return res.status(200).json({
+        webhookReceived: true,
+        ticketId,
+        status: 'QUARANTINED',
+        securityAlert: true,
+        reason: langGraphResult.securityReason
+      });
+    }
+
+    const ticket = {
+      id: ticketId,
+      source: 'INBOUND_WEBHOOK',
+      sender: from,
+      subject,
+      status: langGraphResult.status || 'PENDING_HUMAN_APPROVAL',
+      createdAt: new Date().toISOString(),
+      rawText: text,
+      extracted: langGraphResult.extracted,
+      reconciliation: langGraphResult.reconciliation,
+      risk: langGraphResult.risk,
+      recommendations: langGraphResult.recommendations,
+      selectedOptionId: langGraphResult.recommendations?.recommended_option_id,
+      approvalDeadline: langGraphResult.extracted?.approval_deadline,
+      executionTrace: langGraphResult.executionTrace
+    };
+
+    activeIncidents.unshift(ticket);
+    res.status(200).json({
+      webhookReceived: true,
+      ticketId,
+      status: ticket.status,
+      riskLevel: ticket.risk?.risk_level,
+      recommendedAction: ticket.recommendations?.options?.[0]?.title,
+      executionTrace: ticket.executionTrace
+    });
+  } catch (err) {
+    console.error('Webhook LangGraph Error:', err);
+    res.status(500).json({ error: 'Webhook processing error: ' + err.message });
+  }
+});
 
 // GET Scenarios
 app.get('/api/scenarios', (req, res) => {

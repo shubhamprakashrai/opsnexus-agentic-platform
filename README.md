@@ -119,5 +119,5 @@ OpsNexus handles 7 critical enterprise operational scenarios:
 - **Current Salary:** [e.g., ₹XX,00,000 / annum]
 - **Expected Salary:** [e.g., ₹YY,00,000 / annum]
 - **Notice Period:** [e.g., 15 Days / Immediate]
-- **Application Link:** Hosted on local/cloud URL during evaluation period
-- **GitHub Repository:** `https://github.com/your-username/opsnexus-agentic-platform`
+- **Application Link:** Hosted locally at `http://localhost:3000` (and deployable to Render / Railway / Vercel)
+- **GitHub Repository:** `https://github.com/shubhamprakashrai/opsnexus-agentic-platform`

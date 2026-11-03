@@ -114,10 +114,10 @@ OpsNexus handles 7 critical enterprise operational scenarios:
 
 ## 💼 Candidate Information & Submission Details
 
+- **Demo Video (10 Minutes):** [Google Drive Video Link](https://drive.google.com/file/d/1Ag2PsgtCgchRcivAxfUvbkab6H1p2Zyp/view?usp=sharing)
 - **Role:** Forward Deployed Engineer (FDE)
-- **Candidate Name:** [Your Name]
-- **Current Salary:** [e.g., ₹XX,00,000 / annum]
-- **Expected Salary:** [e.g., ₹YY,00,000 / annum]
-- **Notice Period:** [e.g., 15 Days / Immediate]
+- **Candidate Name:** Shubham Prakash Rai
+- **Expected Salary:** ₹10,00,000 – ₹12,00,000 / annum (Negotiable)
+- **Notice Period:** Immediate / Negotiable
 - **Application Link:** Hosted locally at `http://localhost:3000` (and deployable to Render / Railway / Vercel)
 - **GitHub Repository:** `https://github.com/shubhamprakashrai/opsnexus-agentic-platform`
